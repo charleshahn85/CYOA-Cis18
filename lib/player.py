@@ -1,88 +1,58 @@
+# This is the new object-oriented code for your player.py file
+
+class Stats:
+    """
+    Encapsulates all the numerical stats for a player.
+    """
+    def __init__(self, max_health, strength, dexterity, intelligence):
+        self.max_health = max_health
+        self.current_health = max_health
+        self.strength = strength
+        self.dexterity = dexterity
+        self.intelligence = intelligence
+
+    def decrease_health(self, amount):
+        """Decreases health but not below zero."""
+        self.current_health -= amount
+        if self.current_health < 0:
+            self.current_health = 0
+        print(f"Health is now {self.current_health}/{self.max_health}")
 
 
-from flask import session, request
+class Player:
+    """
+    Represents the player and all their data, including stats, history, etc.
+    """
+    def __init__(self, name):
+        self.name = name
+        self.level = 1
+        self.experience_points = 0
+        self.stats = Stats(max_health=100, strength=10, dexterity=5, intelligence=5)
 
+        # We can include the other player data here too
+        self.visited_scenes = []
+        self.history = []
+        self.vars = {}
 
-def create_player():
-    if 'player' not in session:
-        session['player'] = {
-            'name': "",
-            'visited_scenes': [],
-            'vars': {},
-            'history': [],
-        }
+    def take_damage(self, amount):
+        """Delegates taking damage to the stats object."""
+        print(f"{self.name} takes {amount} damage!")
+        self.stats.decrease_health(amount)
+        if self.stats.current_health == 0:
+            print(f"{self.name} has been defeated!")
 
+    def gain_experience(self, amount):
+        self.experience_points += amount
+        print(f"{self.name} gains {amount} XP.")
+        self.level_up()
 
-def add_history(path: str, limit: int = 200):
-    if path is None:
-        return
-    path = str(path).strip()
-    if path == "":
-        return
-    if path.startswith('/static'):
-        return
-
-    p = session.get('player', {})
-    history = list(p.get('history', []))
-
-    if not history or history[-1] != path:
-        history.append(path)
-
-    if isinstance(limit, int) and limit > 0:
-        history = history[-limit:]
-    p['history'] = history
-    session['player'] = p
-
-
-def mark_scene_seen():
-    endpoint = request.endpoint
-    if endpoint is None:
-        return
-    is_scene = endpoint.startswith('scene_')
-    if not is_scene:
-        return
-    view_args = request.view_args or {}
-    scene_id = view_args.get('scene_id')
-    if scene_id is None:
-        return
-    scene_id = str(scene_id)
-    if scene_id == "":
-        return
-
-    p = session.get('player', {})
-    seen = list(p.get('visited_scenes', []))
-    if scene_id in seen:
-        return
-    seen.append(scene_id)
-    p['visited_scenes'] = seen
-    session['player'] = p
-
-
-def set_var(key: str, value):
-    p = session.get('player', {})
-    vars_ = dict(p.get('vars', {}))
-    vars_[key] = value
-    p['vars'] = vars_
-    session['player'] = p
-
-
-def get_var(key: str, default=None):
-    p = session.get('player', {})
-    return (p.get('vars', {}) or {}).get(key, default)
-
-
-def current_player():
-    return session.get('player', {})
-
-
-def reset_visited():
-    p = session.get('player', {})
-    p['visited_scenes'] = []
-    session['player'] = p
-
-
-def reset_history_and_vars():
-    p = session.get('player', {})
-    p['history'] = []
-    p['vars'] = {}
-    session['player'] = p
+    def level_up(self):
+        """Checks if the player has enough XP to level up."""
+        experience_needed = self.level * 100
+        if self.experience_points >= experience_needed:
+            self.level += 1
+            self.experience_points -= experience_needed
+            self.stats.max_health += 20
+            self.stats.current_health = self.stats.max_health
+            self.stats.strength += 2
+            print(f"LEVEL UP! {self.name} is now Level {self.level}!")
